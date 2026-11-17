@@ -121,7 +121,7 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-lg flex-col gap-12 sm:gap-16">
         <header className="animate-fade-up space-y-3">
           <h1 className="text-[2rem] font-semibold tracking-tight text-foreground sm:text-4xl">
-            나의 AI 가계부
+            나의 스마트 가계부
           </h1>
           <p className="max-w-sm text-lg leading-relaxed text-muted sm:text-[15px]">
             날짜, 금액, 내용을 입력하고 지출을 기록하세요.
