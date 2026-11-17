@@ -449,7 +449,11 @@ export default function Home() {
           </div>
 
           <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-            {expenses.length === 0 && !loadingExpenses ? (
+            {loadingExpenses ? (
+              <div className="w-full rounded-2xl bg-background px-4 py-5 text-sm text-muted">
+                지출을 불러오는 중...
+              </div>
+            ) : expenses.length === 0 ? (
               <div className="w-full rounded-2xl bg-background px-4 py-5 text-sm text-muted">
                 아직 저장된 지출이 없어요. 채팅·음성·영수증 사진으로 알려 주세요.
               </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -15,7 +16,9 @@ import {
 import {
   buildCategoryTotals,
   buildMonthlyTotals,
+  type CategoryTotal,
   type ExpenseLike,
+  type MonthlyTotal,
 } from "../lib/expense-stats";
 
 const PIE_COLORS = ["#191919", "#3a3a3c", "#636366", "#8e8e93", "#aeaeb2", "#c7c7cc"];
@@ -29,11 +32,25 @@ function formatWon(value: number) {
 }
 
 export default function ExpenseCharts({ expenses }: ExpenseChartsProps) {
-  const monthly = buildMonthlyTotals(expenses);
-  const categories = buildCategoryTotals(expenses);
-  const hasData = expenses.length > 0;
+  const [monthly, setMonthly] = useState<MonthlyTotal[]>([]);
+  const [categories, setCategories] = useState<CategoryTotal[]>([]);
+  const [ready, setReady] = useState(false);
 
-  if (!hasData) {
+  useEffect(() => {
+    setMonthly(buildMonthlyTotals(expenses, 6, new Date()));
+    setCategories(buildCategoryTotals(expenses));
+    setReady(true);
+  }, [expenses]);
+
+  if (!ready) {
+    return (
+      <div className="rounded-2xl bg-background px-4 py-5 text-sm text-muted">
+        차트를 준비하는 중...
+      </div>
+    );
+  }
+
+  if (expenses.length === 0) {
     return (
       <div className="rounded-2xl bg-background px-4 py-5 text-sm text-muted">
         지출이 쌓이면 월별·카테고리 차트가 여기에 보여요.

@@ -9,13 +9,13 @@ type BudgetPanelProps = {
   expenses: ExpenseLike[];
 };
 
-function getCurrentMonthKey() {
+function getCurrentMonthKey(now: Date) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
   })
-    .format(new Date())
+    .format(now)
     .slice(0, 7);
 }
 
@@ -24,18 +24,21 @@ function formatAmount(amount: number) {
 }
 
 function getMonthLabel(monthKey: string) {
+  if (!monthKey.includes("-")) return "이번 달";
   const [, month] = monthKey.split("-");
   return `${Number(month)}월`;
 }
 
 export default function BudgetPanel({ expenses }: BudgetPanelProps) {
-  const monthKey = getCurrentMonthKey();
+  const [monthKey, setMonthKey] = useState("");
   const [budget, setBudget] = useState(0);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    setMonthKey(getCurrentMonthKey(new Date()));
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -60,13 +63,12 @@ export default function BudgetPanel({ expenses }: BudgetPanelProps) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ amount: budget }));
   }, [budget, ready]);
 
-  const spent = useMemo(
-    () =>
-      expenses
-        .filter((item) => item.date.startsWith(monthKey))
-        .reduce((sum, item) => sum + item.amount, 0),
-    [expenses, monthKey],
-  );
+  const spent = useMemo(() => {
+    if (!monthKey) return 0;
+    return expenses
+      .filter((item) => item.date.startsWith(monthKey))
+      .reduce((sum, item) => sum + item.amount, 0);
+  }, [expenses, monthKey]);
 
   const ratio = budget > 0 ? spent / budget : 0;
   const percent = Math.min(Math.round(ratio * 100), 999);
@@ -80,6 +82,14 @@ export default function BudgetPanel({ expenses }: BudgetPanelProps) {
     if (!Number.isFinite(value) || value <= 0) return;
     setBudget(Math.round(value));
     setEditing(false);
+  }
+
+  if (!ready) {
+    return (
+      <div className="rounded-2xl bg-background px-4 py-4 text-sm text-muted">
+        예산 정보를 불러오는 중...
+      </div>
+    );
   }
 
   return (

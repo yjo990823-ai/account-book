@@ -27,7 +27,12 @@ export function resolveCategory(expense: ExpenseLike): ExpenseCategory {
   return categorizeByKeywords(expense.description);
 }
 
-export function buildMonthlyTotals(expenses: ExpenseLike[], months = 6): MonthlyTotal[] {
+export function buildMonthlyTotals(
+  expenses: ExpenseLike[],
+  months = 6,
+  now?: Date,
+): MonthlyTotal[] {
+  const reference = now ?? new Date();
   const map = new Map<string, number>();
 
   for (const item of expenses) {
@@ -37,10 +42,9 @@ export function buildMonthlyTotals(expenses: ExpenseLike[], months = 6): Monthly
   }
 
   const result: MonthlyTotal[] = [];
-  const now = new Date();
 
   for (let i = months - 1; i >= 0; i -= 1) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const date = new Date(reference.getFullYear(), reference.getMonth() - i, 1);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     result.push({
       month: key,
