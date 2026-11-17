@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { ExpenseCategory } from "./categories";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -11,4 +12,5 @@ export type ExpenseRow = {
   date: string;
   amount: number;
   description: string;
+  category: ExpenseCategory | string | null;
 };

@@ -1,6 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import {
+  categorizeByKeywords,
+  normalizeCategory,
+  type ExpenseCategory,
+} from "../../../lib/categories";
 
 type ChatRequest = {
   message: string;
@@ -10,11 +15,13 @@ type ExpensePayload = {
   date: string;
   amount: number;
   description: string;
+  category?: string;
 };
 
 type ExpenseRow = ExpensePayload & {
   id: number;
   created_at: string;
+  category: ExpenseCategory | string | null;
 };
 
 type GeminiResult = {
@@ -78,7 +85,7 @@ function detectIntent(message: string): "expense" | "question" {
 
 function buildExpensePrompt(today: string, yesterday: string) {
   return `당신은 친절한 한국어 가계부 챗봇입니다.
-사용자가 지출을 기록하려고 합니다. 날짜, 금액, 내용을 추출하세요.
+사용자가 지출을 기록하려고 합니다. 날짜, 금액, 내용, 카테고리를 추출하세요.
 
 기준 날짜:
 - 오늘: ${today}
@@ -87,13 +94,15 @@ function buildExpensePrompt(today: string, yesterday: string) {
 - date는 YYYY-MM-DD
 - amount는 원 단위 정수 ("2만원" = 20000)
 - description은 짧은 한국어
+- category는 반드시 다음 중 하나: 식비, 교통, 쇼핑, 문화, 기타
+  예: 점심/커피=식비, 택시/버스=교통, 옷/쿠팡=쇼핑, 영화/구독=문화
 
 규칙:
-1. 정보가 충분하면 expense를 채우고 reply에 저장 확인 문구를 쓰세요.
+1. 정보가 충분하면 expense를 채우고 reply에 저장 확인 문구를 쓰세요. 카테고리도 언급하세요.
 2. 날짜나 금액이 불명확하면 expense는 null, need_clarification은 true, 부족한 정보를 물어보세요.
 3. JSON만 출력하세요.
 
-{"reply":"문자열","expense":{"date":"YYYY-MM-DD","amount":20000,"description":"택시"},"need_clarification":false}`;
+{"reply":"문자열","expense":{"date":"YYYY-MM-DD","amount":20000,"description":"택시","category":"교통"},"need_clarification":false}`;
 }
 
 function buildQuestionPrompt(
@@ -157,13 +166,13 @@ function isValidExpense(
   );
 }
 
-function formatConfirmReply(expense: ExpensePayload) {
+function formatConfirmReply(expense: ExpensePayload & { category: ExpenseCategory }) {
   const label = new Intl.DateTimeFormat("ko-KR", {
     month: "long",
     day: "numeric",
   }).format(new Date(expense.date + "T00:00:00"));
   const amount = new Intl.NumberFormat("ko-KR").format(expense.amount);
-  return `${label} ${expense.description} ${amount}원을 저장했어요!`;
+  return `${label} ${expense.description} ${amount}원(${expense.category})을 저장했어요!`;
 }
 
 async function askGemini(apiKey: string, systemPrompt: string, message: string) {
@@ -233,7 +242,7 @@ export async function POST(request: Request) {
     if (intent === "question") {
       const { data: expenses, error: fetchError } = await supabase
         .from("expenses")
-        .select("id, created_at, date, amount, description")
+        .select("id, created_at, date, amount, description, category")
         .order("date", { ascending: false });
 
       if (fetchError) {
@@ -308,16 +317,21 @@ export async function POST(request: Request) {
       });
     }
 
-    const expenseToSave: ExpensePayload = {
+    const category = parsed.expense.category
+      ? normalizeCategory(parsed.expense.category)
+      : categorizeByKeywords(parsed.expense.description);
+
+    const expenseToSave = {
       date: parsed.expense.date,
       amount: Math.round(Number(parsed.expense.amount)),
       description: parsed.expense.description.trim(),
+      category,
     };
 
     const { data, error } = await supabase
       .from("expenses")
       .insert(expenseToSave)
-      .select("id, created_at, date, amount, description")
+      .select("id, created_at, date, amount, description, category")
       .single();
 
     if (error) {
