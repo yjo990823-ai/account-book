@@ -14,8 +14,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "나의 스마트 가계부",
-  description: "간단하고 깔끔한 지출 기록 가계부",
+  title: "AI 가계부 챗봇",
+  description: "대화로 기록하는 스마트 가계부",
 };
 
 export const viewport = {
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className={`${plusJakarta.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col overflow-x-hidden">{children}</body>
+      <body className="flex h-full min-h-dvh flex-col overflow-hidden">{children}</body>
     </html>
   );
 }
